@@ -7,9 +7,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Env files
-.env
-.env.local
-.env.*.local
+*.env
 
 # Build outputs
 dist/
