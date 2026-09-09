@@ -30,7 +30,7 @@ const io = new Server(server, {
 
 const mysql = require("./modulos/mysql");
 
-app.post("/register", async (req, res) => {
+app.post("/register", async (req, res) => {     //ANDA
   try {
     // Obtenemos los datos enviados por el frontend
     const { nombre, email, password, imagen } = req.body;
@@ -74,7 +74,7 @@ app.post("/register", async (req, res) => {
 });
 
 
-app.post("/login", async (req, res) => {
+app.post("/login", async (req, res) => {        //ANDA
   try {
     // Obtenemos los datos enviados por el frontend
     const { email, password } = req.body;
@@ -88,9 +88,9 @@ app.post("/login", async (req, res) => {
 
     // Buscamos el usuario por su email
     const usuarios = await mysql.realizarQuery(
-      `SELECT * FROM UsuariosChat 
-             WHERE email = '${email}'`
-    );
+      `SELECT * 
+      FROM UsuariosChat 
+      WHERE email = '${email}'`);
 
     // Si no existe ningún usuario con ese email
     if (usuarios.length === 0) {
@@ -137,15 +137,10 @@ app.get("/chats/:id_usuario", async (req, res) => {
     const { id_usuario } = req.params;
 
     const chats = await mysql.realizarQuery(
-      `SELECT 
-                Chats.id_chat,
-                Chats.nombre,
-                Chats.foto,
-                Chats.fecha_creacion
-             FROM Chats
-             INNER JOIN ChatUsuario
-                ON Chats.id_chat = ChatUsuario.id_chat
-             WHERE ChatUsuario.id_usuario = ${id_usuario}`
+      `SELECT Chats.id_chat, Chats.nombre, Chats.foto, Chats.fecha_creacion
+      FROM Chats
+      INNER JOIN ChatUsuario ON Chats.id_chat = ChatUsuario.id_chat
+      WHERE ChatUsuario.id_usuario = ${id_usuario}`
     );
 
     res.status(200).json(chats);
@@ -159,32 +154,6 @@ app.get("/chats/:id_usuario", async (req, res) => {
   }
 });
 
-app.get("/chats/:id_usuario", async (req, res) => {
-  try {
-    const { id_usuario } = req.params;
-
-    const chats = await mysql.realizarQuery(
-      `SELECT 
-                Chats.id_chat,
-                Chats.nombre,
-                Chats.foto,
-                Chats.fecha_creacion
-             FROM Chats
-             INNER JOIN ChatUsuario
-                ON Chats.id_chat = ChatUsuario.id_chat
-             WHERE ChatUsuario.id_usuario = ${id_usuario}`
-    );
-
-    res.status(200).json(chats);
-
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: "Error al obtener los chats"
-    });
-  }
-});
 
 app.post("/chats/individual", async (req, res) => {
     try {
