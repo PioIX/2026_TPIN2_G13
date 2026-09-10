@@ -139,8 +139,9 @@ app.get("/chats/:id_usuario", async (req, res) => {
     const chats = await mysql.realizarQuery(
       `SELECT Chats.id_chat, Chats.nombre, Chats.foto, Chats.fecha_creacion
       FROM Chats
-      INNER JOIN ChatUsuario ON Chats.id_chat = ChatUsuario.id_chat
-      WHERE ChatUsuario.id_usuario = ${id_usuario}`
+      INNER JOIN ChatUsuarios 
+      ON Chats.id_chat = ChatUsuarios.id_chat
+      WHERE ChatUsuarios.id_usuario = ${id_usuario}`
     );
 
     res.status(200).json(chats);
@@ -156,66 +157,66 @@ app.get("/chats/:id_usuario", async (req, res) => {
 
 
 app.post("/chats/individual", async (req, res) => {
-    try {
-        const { id_usuario, email } = req.body;
+  try {
+    const { id_usuario, email } = req.body;
 
-        if (!id_usuario || !email) {
-            return res.status(400).json({
-                error: "Faltan datos"
-            });
-        }
+    if (!id_usuario || !email) {
+      return res.status(400).json({
+        error: "Faltan datos"
+      });
+    }
 
-        // Buscar al usuario con el email recibido
-        const usuarios = await mysql.realizarQuery(
-            `SELECT * FROM UsuariosChat 
-             WHERE email = '${email}'`
-        );
+    // Buscar al usuario con el email recibido
+    const usuarios = await mysql.realizarQuery(
+      `SELECT * FROM UsuariosChat 
+      WHERE email = '${email}'`
+    );
 
-        if (usuarios.length === 0) {
-            return res.status(404).json({
-                error: "No existe un usuario con ese email"
-            });
-        }
+    if (usuarios.length === 0) {
+      return res.status(404).json({
+        error: "No existe un usuario con ese email"
+      });
+    }
 
-        const otroUsuario = usuarios[0];
+    const otroUsuario = usuarios[0];
 
-        // Crear el chat
-        await mysql.realizarQuery(
-            `INSERT INTO Chats (nombre, foto)
+    // Crear el chat
+    await mysql.realizarQuery(
+      `INSERT INTO Chats (nombre, foto)
              VALUES ('Chat individual', '')`
-        );
+    );
 
-        // Obtener el ID del chat creado
-        const nuevoChat = await mysql.realizarQuery(
-            `SELECT id_chat 
+    // Obtener el ID del chat creado
+    const nuevoChat = await mysql.realizarQuery(
+      `SELECT id_chat 
              FROM Chats 
              ORDER BY id_chat DESC 
              LIMIT 1`
-        );
+    );
 
-        const id_chat = nuevoChat[0].id_chat;
+    const id_chat = nuevoChat[0].id_chat;
 
-        // Agregar al usuario que crea el chat
-        await mysql.realizarQuery(
-            `INSERT INTO ChatUsuario (id_chat, id_usuario)
+    // Agregar al usuario que crea el chat
+    await mysql.realizarQuery(
+      `INSERT INTO ChatUsuario (id_chat, id_usuario)
              VALUES (${id_chat}, ${id_usuario})`
-        );
-        // Agregar al otro usuario
-        await mysql.realizarQuery(
-            `INSERT INTO ChatUsuario (id_chat, id_usuario)
-             VALUES (${id_chat}, ${otroUsuario.id_usuario})`
-        );
+    );
+    // Agregar al otro usuario
+    await mysql.realizarQuery(
+    `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+     VALUES (${id_chat}, ${otroUsuario.id_usuario})`
+    );
 
-        res.status(201).json({
-            mensaje: "Chat creado correctamente",
-            id_chat: id_chat
-        });
+    res.status(201).json({
+      mensaje: "Chat creado correctamente",
+      id_chat: id_chat
+    });
 
-    } catch (error) {
-        console.error(error);
+  } catch (error) {
+    console.error(error);
 
-        res.status(500).json({
-            error: "Error al crear el chat"
-        });
-    }
+    res.status(500).json({
+      error: "Error al crear el chat"
+    });
+  }
 });
