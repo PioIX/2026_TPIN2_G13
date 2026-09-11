@@ -30,12 +30,28 @@ export default function RegistroPage() {
         setValInputFoto(event.target.value)
     }
 
-    function registrarse() { //esto se puede sacar
-        console.log("Usuario:", valInputUser)
-        console.log("Mail:", valInputMail)
-        console.log("Contraseña:", valInputContraseña)
-        console.log("Foto:", valInputFoto)
-    }
+    //
+    const registrarse = () => {
+    const respuesta = { //se crea un objeto con los datos del nuevo estudiante
+        nombre: valInputUser,
+        email: valInputMail,
+        password: valInputContraseña,
+        imagen: valInputFoto 
+    };
+    fetch('http://localhost:4000/register', { //se hace la peticion al backend para crear un nuevo estudiante
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(respuesta)
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Registro creado:', data); //se muestra en consola la respuesta del backend
+        });
+};
+
+
 
     return (
         <>
@@ -51,6 +67,7 @@ export default function RegistroPage() {
             ></Input>
 
             <Input
+                type="email"
                 text="Mail"
                 ph="Escribir el mail"
                 value={valInputMail}
