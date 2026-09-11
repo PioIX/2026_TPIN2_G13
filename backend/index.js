@@ -132,30 +132,42 @@ app.post("/login", async (req, res) => {        //ANDA
 });
 
 
+//LISTADO DE CHATS
 app.get("/chats/:id_usuario", async (req, res) => {
-  try {
-    const { id_usuario } = req.params;
+    try {
+        const { id_usuario } = req.params;
 
-    const chats = await mysql.realizarQuery(
-      `SELECT Chats.id_chat, Chats.nombre, Chats.foto, Chats.fecha_creacion
-      FROM Chats
-      INNER JOIN ChatUsuarios 
-      ON Chats.id_chat = ChatUsuarios.id_chat
-      WHERE ChatUsuarios.id_usuario = ${id_usuario}`
-    );
+        const chats = await mysql.realizarQuery(
+            `SELECT 
+                Chats.id_chat,
+                Chats.nombre,
+                Chats.foto,
+                Chats.fecha_creacion,
+                UsuariosChat.nombre AS nombre_contacto,
+                UsuariosChat.imagen AS imagen_contacto
+            FROM Chats
+            INNER JOIN ChatUsuarios
+                ON Chats.id_chat = ChatUsuarios.id_chat
+            LEFT JOIN ChatUsuarios AS OtroChatUsuario
+                ON Chats.id_chat = OtroChatUsuario.id_chat
+                AND OtroChatUsuario.id_usuario != ${id_usuario}
+            LEFT JOIN UsuariosChat
+                ON OtroChatUsuario.id_usuario = UsuariosChat.id_usuario
+            WHERE ChatUsuarios.id_usuario = ${id_usuario}`
+        );
+        res.status(200).json(chats);
 
-    res.status(200).json(chats);
+    } catch (error) {
+        console.error(error);
 
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: "Error al obtener los chats"
-    });
-  }
+        res.status(500).json({
+            error: "Error al obtener los chats"
+        });
+    }
 });
 
 
+//CHAT INDIVIDUAL
 app.post("/chats/individual", async (req, res) => {
   try {
     const { id_usuario, email } = req.body;
@@ -198,7 +210,7 @@ app.post("/chats/individual", async (req, res) => {
 
     // Agregar al usuario que crea el chat
     await mysql.realizarQuery(
-      `INSERT INTO ChatUsuario (id_chat, id_usuario)
+      `INSERT INTO ChatUsuarios (id_chat, id_usuario)
              VALUES (${id_chat}, ${id_usuario})`
     );
     // Agregar al otro usuario
@@ -220,3 +232,106 @@ app.post("/chats/individual", async (req, res) => {
     });
   }
 });
+
+
+
+//CHAT GRUPAL
+app.post("/chats/grupal", async (req, res) => {
+    try {
+
+        const { id_usuario, emails, nombre } = req.body;
+
+        // Verificamos que estén los datos necesarios
+        if (!id_usuario || !emails || emails.length === 0 || !nombre) {
+            return res.status(400).json({
+                error: "Faltan datos"
+            });
+        }
+
+        // Creamos el chat grupal
+        await mysql.realizarQuery(
+            `INSERT INTO Chats (nombre, foto)
+             VALUES ('${nombre}', '')`
+        );
+
+        // Obtenemos el ID del chat recién creado
+        const nuevoChat = await mysql.realizarQuery(
+            `SELECT id_chat
+             FROM Chats
+             ORDER BY id_chat DESC
+             LIMIT 1`
+        );
+
+        const id_chat = nuevoChat[0].id_chat;
+
+        // Agregamos al usuario que creó el grupo
+        await mysql.realizarQuery(
+            `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+             VALUES (${id_chat}, ${id_usuario})`
+        );
+
+        // Recorremos todos los emails recibidos
+        for (const email of emails) {
+
+            // Buscamos al usuario correspondiente a ese email
+            const usuarios = await mysql.realizarQuery(
+                `SELECT * FROM UsuariosChat
+                 WHERE email = '${email}'`
+            );
+
+            // Si encontramos el usuario, lo agregamos al chat
+            if (usuarios.length > 0) {
+
+                const usuario = usuarios[0];
+
+                await mysql.realizarQuery(
+                    `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+                     VALUES (${id_chat}, ${usuario.id_usuario})`
+                );
+            }
+        }
+
+        res.status(201).json({
+            mensaje: "Chat grupal creado correctamente",
+            id_chat: id_chat
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            error: "Error al crear el chat grupal"
+        });
+    }
+});
+
+
+//HISTORIAL DE MENSAJES
+app.get("/chats/:id_chat/mensajes", async (req, res) => {
+    try {
+
+        const { id_chat } = req.params;
+
+        // Buscamos todos los mensajes de ese chat
+        const mensajes = await mysql.realizarQuery(
+            `SELECT *
+             FROM Mensajes
+             WHERE id_chat = ${id_chat}
+             ORDER BY fecha_hora ASC`
+        );
+
+        res.status(200).json(mensajes);
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            error: "Error al obtener los mensajes"
+        });
+    }
+});
+
+
+//FALTARIA TODO LO QUE ES SOCKET
