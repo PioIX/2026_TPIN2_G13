@@ -133,7 +133,7 @@ app.post("/login", async (req, res) => {        //ANDA
 
 
 //LISTADO DE CHATS
-app.get("/chats/:id_usuario", async (req, res) => {
+app.get("/chats/:id_usuario", async (req, res) => { //ANDA
     try {
         const { id_usuario } = req.params;
 
@@ -168,7 +168,7 @@ app.get("/chats/:id_usuario", async (req, res) => {
 
 
 //CHAT INDIVIDUAL
-app.post("/chats/individual", async (req, res) => {
+app.post("/chats/individual", async (req, res) => { //ANDA
   try {
     const { id_usuario, email } = req.body;
 
@@ -236,7 +236,7 @@ app.post("/chats/individual", async (req, res) => {
 
 
 //CHAT GRUPAL
-app.post("/chats/grupal", async (req, res) => {
+app.post("/chats/grupal", async (req, res) => {  //ANDA
     try {
 
         const { id_usuario, emails, nombre } = req.body;
@@ -308,7 +308,7 @@ app.post("/chats/grupal", async (req, res) => {
 
 
 //HISTORIAL DE MENSAJES
-app.get("/chats/:id_chat/mensajes", async (req, res) => {
+app.get("/chats/:id_chat/mensajes", async (req, res) => { //ANDA
     try {
 
         const { id_chat } = req.params;
