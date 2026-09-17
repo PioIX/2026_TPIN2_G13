@@ -28,8 +28,84 @@ const io = new Server(server, {
   },
 });
 
+io.use((socket, next) => {
+  sessionMiddleware(socket.request, {}, next);
+});
+
 const mysql = require("./modulos/mysql");
 
+//CONEXION SOCKET
+
+io.on("connection", (socket) => { // Se ejecuta cuando un cliente se conecta
+
+  const req = socket.request;
+
+  // ENTRAR A UNA SALA
+  socket.on("joinRoom", (data) => {
+
+    // Si ya estaba en otra sala, sale de esa sala
+    if (req.session.room != undefined && req.session.room.length > 0) {
+      socket.leave(req.session.room);
+    }
+
+    // Guardamos la sala actual
+    req.session.room = data.room;
+
+    // Entramos a la nueva sala
+    socket.join(req.session.room);
+
+    console.log("Usuario entró a la sala:", req.session.room);
+
+    // Avisamos a los usuarios de la sala
+    io.to(req.session.room).emit("chat-messages", {
+      user: req.session.usuario,
+      room: req.session.room
+    });
+  });
+
+
+  // ENVIAR MENSAJE
+  socket.on("sendMessage", async (data, id_usuario) => {
+
+    try {
+      // Obtenemos el chat actual
+      const id_chat = req.data.room;
+
+      // Obtenemos el usuario de la sesión
+      const id_usuario = req.data.usuario.id_usuario;
+
+      // Obtenemos el contenido enviado
+      const contenido = data.contenido;
+
+      // Guardamos el mensaje en la base de datos
+      await mysql.realizarQuery(
+        `INSERT INTO Mensajes (id_chat, id_usuario, contenido)
+         VALUES (${id_chat}, ${id_usuario}, '${contenido}')`
+      );
+
+      // Mandamos el mensaje a todos los usuarios de esa sala
+      io.to(req.session.room).emit("newMessage", {
+        id_chat: id_chat,
+        id_usuario: id_usuario,
+        contenido: contenido
+      });
+
+    } catch (error) {
+
+      console.error("Error al enviar mensaje:", error);
+
+    }
+  });
+
+
+  // DESCONECTARSE
+  socket.on("disconnect", () => {
+
+    console.log("Usuario desconectado");
+
+  });
+
+});
 app.post("/register", async (req, res) => {     //ANDA
   try {
     // Obtenemos los datos enviados por el frontend
@@ -134,11 +210,11 @@ app.post("/login", async (req, res) => {        //ANDA
 
 //LISTADO DE CHATS
 app.get("/chats/:id_usuario", async (req, res) => { //ANDA
-    try {
-        const { id_usuario } = req.params;
+  try {
+    const { id_usuario } = req.params;
 
-        const chats = await mysql.realizarQuery(
-            `SELECT 
+    const chats = await mysql.realizarQuery(
+      `SELECT 
                 Chats.id_chat,
                 Chats.nombre,
                 Chats.foto,
@@ -154,16 +230,16 @@ app.get("/chats/:id_usuario", async (req, res) => { //ANDA
             LEFT JOIN UsuariosChat
                 ON OtroChatUsuario.id_usuario = UsuariosChat.id_usuario
             WHERE ChatUsuarios.id_usuario = ${id_usuario}`
-        );
-        res.status(200).json(chats);
+    );
+    res.status(200).json(chats);
 
-    } catch (error) {
-        console.error(error);
+  } catch (error) {
+    console.error(error);
 
-        res.status(500).json({
-            error: "Error al obtener los chats"
-        });
-    }
+    res.status(500).json({
+      error: "Error al obtener los chats"
+    });
+  }
 });
 
 
@@ -215,7 +291,7 @@ app.post("/chats/individual", async (req, res) => { //ANDA
     );
     // Agregar al otro usuario
     await mysql.realizarQuery(
-    `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+      `INSERT INTO ChatUsuarios (id_chat, id_usuario)
      VALUES (${id_chat}, ${otroUsuario.id_usuario})`
     );
 
@@ -237,100 +313,100 @@ app.post("/chats/individual", async (req, res) => { //ANDA
 
 //CHAT GRUPAL
 app.post("/chats/grupal", async (req, res) => {  //ANDA
-    try {
+  try {
 
-        const { id_usuario, emails, nombre } = req.body;
+    const { id_usuario, emails, nombre } = req.body;
 
-        // Verificamos que estén los datos necesarios
-        if (!id_usuario || !emails || emails.length === 0 || !nombre) {
-            return res.status(400).json({
-                error: "Faltan datos"
-            });
-        }
+    // Verificamos que estén los datos necesarios
+    if (!id_usuario || !emails || emails.length === 0 || !nombre) {
+      return res.status(400).json({
+        error: "Faltan datos"
+      });
+    }
 
-        // Creamos el chat grupal
-        await mysql.realizarQuery(
-            `INSERT INTO Chats (nombre, foto)
+    // Creamos el chat grupal
+    await mysql.realizarQuery(
+      `INSERT INTO Chats (nombre, foto)
              VALUES ('${nombre}', '')`
-        );
+    );
 
-        // Obtenemos el ID del chat recién creado
-        const nuevoChat = await mysql.realizarQuery(
-            `SELECT id_chat
+    // Obtenemos el ID del chat recién creado
+    const nuevoChat = await mysql.realizarQuery(
+      `SELECT id_chat
              FROM Chats
              ORDER BY id_chat DESC
              LIMIT 1`
-        );
+    );
 
-        const id_chat = nuevoChat[0].id_chat;
+    const id_chat = nuevoChat[0].id_chat;
 
-        // Agregamos al usuario que creó el grupo
-        await mysql.realizarQuery(
-            `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+    // Agregamos al usuario que creó el grupo
+    await mysql.realizarQuery(
+      `INSERT INTO ChatUsuarios (id_chat, id_usuario)
              VALUES (${id_chat}, ${id_usuario})`
-        );
+    );
 
-        // Recorremos todos los emails recibidos
-        for (const email of emails) {
+    // Recorremos todos los emails recibidos
+    for (const email of emails) {
 
-            // Buscamos al usuario correspondiente a ese email
-            const usuarios = await mysql.realizarQuery(
-                `SELECT * FROM UsuariosChat
+      // Buscamos al usuario correspondiente a ese email
+      const usuarios = await mysql.realizarQuery(
+        `SELECT * FROM UsuariosChat
                  WHERE email = '${email}'`
-            );
+      );
 
-            // Si encontramos el usuario, lo agregamos al chat
-            if (usuarios.length > 0) {
+      // Si encontramos el usuario, lo agregamos al chat
+      if (usuarios.length > 0) {
 
-                const usuario = usuarios[0];
+        const usuario = usuarios[0];
 
-                await mysql.realizarQuery(
-                    `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+        await mysql.realizarQuery(
+          `INSERT INTO ChatUsuarios (id_chat, id_usuario)
                      VALUES (${id_chat}, ${usuario.id_usuario})`
-                );
-            }
-        }
-
-        res.status(201).json({
-            mensaje: "Chat grupal creado correctamente",
-            id_chat: id_chat
-        });
-
-    } catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
-            error: "Error al crear el chat grupal"
-        });
+        );
+      }
     }
+
+    res.status(201).json({
+      mensaje: "Chat grupal creado correctamente",
+      id_chat: id_chat
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Error al crear el chat grupal"
+    });
+  }
 });
 
 
 //HISTORIAL DE MENSAJES
 app.get("/chats/:id_chat/mensajes", async (req, res) => { //ANDA
-    try {
+  try {
 
-        const { id_chat } = req.params;
+    const { id_chat } = req.params;
 
-        // Buscamos todos los mensajes de ese chat
-        const mensajes = await mysql.realizarQuery(
-            `SELECT *
+    // Buscamos todos los mensajes de ese chat
+    const mensajes = await mysql.realizarQuery(
+      `SELECT *
              FROM Mensajes
              WHERE id_chat = ${id_chat}
              ORDER BY fecha_hora ASC`
-        );
+    );
 
-        res.status(200).json(mensajes);
+    res.status(200).json(mensajes);
 
-    } catch (error) {
+  } catch (error) {
 
-        console.error(error);
+    console.error(error);
 
-        res.status(500).json({
-            error: "Error al obtener los mensajes"
-        });
-    }
+    res.status(500).json({
+      error: "Error al obtener los mensajes"
+    });
+  }
 });
 
 
