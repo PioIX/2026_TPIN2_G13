@@ -410,4 +410,14 @@ app.get("/chats/:id_chat/mensajes", async (req, res) => { //ANDA
 });
 
 
-//FALTARIA TODO LO QUE ES SOCKET
+app.get("/usuario", (req, res) => {
+
+  if (req.session.usuario) {
+    res.status(200).json(req.session.usuario);
+  } else {
+    res.status(401).json({
+      error: "No hay un usuario logueado"
+    });
+  }
+
+});

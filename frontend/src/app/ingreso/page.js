@@ -1,11 +1,13 @@
 
 "use client";
-
 import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 
 export default function Page() {
+    const router = useRouter();
     // Estado para decidir si mostramos Login o Registro
     const [mostrarRegistro, setMostrarRegistro] = useState(false);
 
@@ -25,7 +27,6 @@ export default function Page() {
     function leerValInputContraseña(event) {
         setValInputContraseña(event.target.value);
     }
-
     const login = () => {
 
         const respuesta = {
@@ -38,9 +39,17 @@ export default function Page() {
             headers: {
                 "Content-Type": "application/json"
             },
+            credentials: "include",
             body: JSON.stringify(respuesta)
         })
-            .then(response => response.json())
+            .then(response => {
+
+                if (response.ok) {
+                    router.push("/");
+                }
+
+                return response.json();
+            })
             .then(data => {
                 console.log("Respuesta del login:", data);
             });
@@ -72,12 +81,18 @@ export default function Page() {
             },
             body: JSON.stringify(respuesta)
         })
-            .then(response => response.json())
+            .then(response => {
+
+                if (response.ok) {
+                    router.push("/");
+                }
+
+                return response.json();
+            })
             .then(data => {
                 console.log("Registro creado:", data);
             });
     };
-
 
     return (
         <>
@@ -118,7 +133,7 @@ export default function Page() {
                     />
 
                     <Button
-                        text="Registrarse"
+                        text="¿No estas logueado? Registrate "
                         onClick={() => setMostrarRegistro(true)}
                     />
                 </>
@@ -174,7 +189,7 @@ export default function Page() {
                     />
 
                     <Button
-                        text="Iniciar Sesión"
+                        text="¿Ya estas registrado? Inicia Sesión"
                         onClick={() => setMostrarRegistro(false)}
                     />
                 </>
