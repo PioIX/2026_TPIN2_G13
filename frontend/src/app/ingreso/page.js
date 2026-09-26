@@ -1,25 +1,23 @@
 
 "use client";
+
 import Button from "@/components/Button";
 import Input from "@/components/Input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-
 export default function Page() {
+
     const router = useRouter();
-    // Estado para decidir si mostramos Login o Registro
+
     const [mostrarRegistro, setMostrarRegistro] = useState(false);
 
-    // Estados del Login
     const [valInputMail, setValInputMail] = useState("");
     const [valInputContraseña, setValInputContraseña] = useState("");
 
-    // Estados del Registro
     const [valInputUser, setValInputUser] = useState("");
     const [valInputFoto, setValInputFoto] = useState("");
 
-    // LOGIN
     function leerValInputMail(event) {
         setValInputMail(event.target.value);
     }
@@ -27,11 +25,20 @@ export default function Page() {
     function leerValInputContraseña(event) {
         setValInputContraseña(event.target.value);
     }
+
+    function leerValInputUser(event) {
+        setValInputUser(event.target.value);
+    }
+
+    function leerValInputFoto(event) {
+        setValInputFoto(event.target.value);
+    }
+
     const login = () => {
 
         const respuesta = {
             email: valInputMail,
-            password: valInputContraseña,
+            password: valInputContraseña
         };
 
         fetch("http://localhost:4000/login", {
@@ -50,20 +57,9 @@ export default function Page() {
 
                 return response.json();
             })
-            .then(data => {
-                console.log("Respuesta del login:", data);
-            });
+            .then(data => console.log("Respuesta del login:", data));
     };
 
-
-    // REGISTRO
-    function leerValInputUser(event) {
-        setValInputUser(event.target.value);
-    }
-
-    function leerValInputFoto(event) {
-        setValInputFoto(event.target.value);
-    }
 
     const registrarse = () => {
 
@@ -84,23 +80,18 @@ export default function Page() {
             .then(response => {
 
                 if (response.ok) {
-                    router.push("/");
+                    setMostrarRegistro(false);
                 }
 
                 return response.json();
             })
-            .then(data => {
-                console.log("Registro creado:", data);
-            });
+            .then(data => console.log("Registro creado:", data));
     };
+
 
     return (
         <>
             {!mostrarRegistro ? (
-
-                // =========================
-                // LOGIN
-                // =========================
 
                 <>
                     <h1>
@@ -133,16 +124,12 @@ export default function Page() {
                     />
 
                     <Button
-                        text="¿No estas logueado? Registrate "
+                        text="¿No estas logueado? Registrate"
                         onClick={() => setMostrarRegistro(true)}
                     />
                 </>
 
             ) : (
-
-                // =========================
-                // REGISTRO
-                // =========================
 
                 <>
                     <h1>
@@ -187,13 +174,11 @@ export default function Page() {
                         text="Registrarse"
                         onClick={registrarse}
                     />
-
-                    <Button
-                        text="¿Ya estas registrado? Inicia Sesión"
-                        onClick={() => setMostrarRegistro(false)}
-                    />
                 </>
+
             )}
         </>
     );
 }
+
+

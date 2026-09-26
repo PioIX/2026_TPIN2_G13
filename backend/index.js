@@ -5,8 +5,10 @@ const { Server } = require("socket.io");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
 app.use(express.json());
 
 const sessionMiddleware = session({
@@ -65,17 +67,17 @@ io.on("connection", (socket) => { // Se ejecuta cuando un cliente se conecta
 
 
   // ENVIAR MENSAJE
-  socket.on("sendMessage", async (data, id_usuario) => {
+  socket.on("sendMessage", async (data) => {
 
     try {
       // Obtenemos el chat actual
-      const id_chat = req.data.room;
+      const id_chat = req.session.room;
 
       // Obtenemos el usuario de la sesión
-      const id_usuario = req.data.usuario.id_usuario;
+      const id_usuario = req.session.usuario.id_usuario;
 
       // Obtenemos el contenido enviado
-      const contenido = data.contenido;
+      const contenido = data.message;
 
       // Guardamos el mensaje en la base de datos
       await mysql.realizarQuery(
@@ -243,9 +245,10 @@ app.get("/chats/:id_usuario", async (req, res) => { //ANDA
 });
 
 
-//CHAT INDIVIDUAL
-app.post("/chats/individual", async (req, res) => { //ANDA
+// CHAT INDIVIDUAL
+app.post("/chats/individual", async (req, res) => {
   try {
+
     const { id_usuario, email } = req.body;
 
     if (!id_usuario || !email) {
@@ -254,10 +257,10 @@ app.post("/chats/individual", async (req, res) => { //ANDA
       });
     }
 
-    // Buscar al usuario con el email recibido
+    // Buscar al usuario por email
     const usuarios = await mysql.realizarQuery(
       `SELECT * FROM UsuariosChat 
-      WHERE email = '${email}'`
+             WHERE email = '${email}'`
     );
 
     if (usuarios.length === 0) {
@@ -274,11 +277,11 @@ app.post("/chats/individual", async (req, res) => { //ANDA
              VALUES ('Chat individual', '')`
     );
 
-    // Obtener el ID del chat creado
+    // Buscar el último chat creado
     const nuevoChat = await mysql.realizarQuery(
-      `SELECT id_chat 
-             FROM Chats 
-             ORDER BY id_chat DESC 
+      `SELECT id_chat
+             FROM Chats
+             ORDER BY id_chat DESC
              LIMIT 1`
     );
 
@@ -289,10 +292,11 @@ app.post("/chats/individual", async (req, res) => { //ANDA
       `INSERT INTO ChatUsuarios (id_chat, id_usuario)
              VALUES (${id_chat}, ${id_usuario})`
     );
+
     // Agregar al otro usuario
     await mysql.realizarQuery(
       `INSERT INTO ChatUsuarios (id_chat, id_usuario)
-     VALUES (${id_chat}, ${otroUsuario.id_usuario})`
+             VALUES (${id_chat}, ${otroUsuario.id_usuario})`
     );
 
     res.status(201).json({
@@ -301,10 +305,11 @@ app.post("/chats/individual", async (req, res) => { //ANDA
     });
 
   } catch (error) {
-    console.error(error);
+
+    console.log("ERROR REAL:", error);
 
     res.status(500).json({
-      error: "Error al crear el chat"
+      error: error.message
     });
   }
 });
