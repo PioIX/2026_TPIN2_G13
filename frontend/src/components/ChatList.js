@@ -1,3 +1,4 @@
+"use client"
 import ChatItem from "./ChatItem"
 
 export default function ChatList({ chats }) {
