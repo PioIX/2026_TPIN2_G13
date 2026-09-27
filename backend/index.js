@@ -211,36 +211,55 @@ app.post("/login", async (req, res) => {        //ANDA
 
 
 //LISTADO DE CHATS
-app.get("/chats/:id_usuario", async (req, res) => { //ANDA
+app.get("/chats/:id_usuario", async (req,res)=>{
   try {
     const { id_usuario } = req.params;
 
     const chats = await mysql.realizarQuery(
       `SELECT 
-                Chats.id_chat,
-                Chats.nombre,
-                Chats.foto,
-                Chats.fecha_creacion,
-                UsuariosChat.nombre AS nombre_contacto,
-                UsuariosChat.imagen AS imagen_contacto
-            FROM Chats
-            INNER JOIN ChatUsuarios
-                ON Chats.id_chat = ChatUsuarios.id_chat
-            LEFT JOIN ChatUsuarios AS OtroChatUsuario
-                ON Chats.id_chat = OtroChatUsuario.id_chat
-                AND OtroChatUsuario.id_usuario != ${id_usuario}
-            LEFT JOIN UsuariosChat
-                ON OtroChatUsuario.id_usuario = UsuariosChat.id_usuario
-            WHERE ChatUsuarios.id_usuario = ${id_usuario}`
+        Chats.id_chat,
+        Chats.nombre,
+        Chats.foto,
+        Chats.fecha_creacion,
+
+        CASE
+          WHEN Chats.nombre = 'Chat individual'
+            THEN MAX(UsuariosChat.nombre)
+          ELSE Chats.nombre
+        END AS nombre_contacto,
+
+        CASE
+          WHEN Chats.nombre = 'Chat individual'
+            THEN MAX(UsuariosChat.imagen)
+          ELSE Chats.foto
+        END AS imagen_contacto
+
+      FROM Chats
+
+      INNER JOIN ChatUsuarios
+        ON Chats.id_chat = ChatUsuarios.id_chat
+
+      LEFT JOIN ChatUsuarios AS OtroChatUsuario
+        ON Chats.id_chat = OtroChatUsuario.id_chat
+        AND OtroChatUsuario.id_usuario != ${id_usuario}
+
+      LEFT JOIN UsuariosChat
+        ON OtroChatUsuario.id_usuario = UsuariosChat.id_usuario
+
+      WHERE ChatUsuarios.id_usuario = ${id_usuario}
+
+      GROUP BY
+        Chats.id_chat,
+        Chats.nombre,
+        Chats.foto,
+        Chats.fecha_creacion`
     );
+
     res.status(200).json(chats);
 
-  } catch (error) {
+  } catch(error) {
     console.error(error);
-
-    res.status(500).json({
-      error: "Error al obtener los chats"
-    });
+    res.status(500).json({error: "Error al obtener los chats"});
   }
 });
 
@@ -315,76 +334,85 @@ app.post("/chats/individual", async (req, res) => {
 });
 
 
+//ENDPOINT CHAT GRUPAL
+app.post("/chats/grupal", async (req, res) => {
+    try {
 
-//CHAT GRUPAL
-app.post("/chats/grupal", async (req, res) => {  //ANDA
-  try {
+        const { id_usuario, emails, nombre, foto } = req.body;
 
-    const { id_usuario, emails, nombre } = req.body;
+        // Verificamos que estén los datos necesarios
+        if (!id_usuario || !emails || emails.length === 0 || !nombre) {
+            return res.status(400).json({
+                error: "Faltan datos"
+            });
+        }
 
-    // Verificamos que estén los datos necesarios
-    if (!id_usuario || !emails || emails.length === 0 || !nombre) {
-      return res.status(400).json({
-        error: "Faltan datos"
-      });
-    }
+        // Acá vamos a guardar los usuarios encontrados
+        const usuariosEncontrados = [];
 
-    // Creamos el chat grupal
-    await mysql.realizarQuery(
-      `INSERT INTO Chats (nombre, foto)
-             VALUES ('${nombre}', '')`
-    );
+        // Primero verificamos TODOS los emails
+        for (const email of emails) {   //esto lo que hace es recorrer el array de emails y por cada email hace la consulta a la base de datos para ver si existe un usuario con ese email
 
-    // Obtenemos el ID del chat recién creado
-    const nuevoChat = await mysql.realizarQuery(
-      `SELECT id_chat
+            const usuarios = await mysql.realizarQuery(
+                `SELECT * FROM UsuariosChat
+                 WHERE email = '${email}'`
+            );
+
+            // Si algún email no existe, NO creamos el grupo
+            if (usuarios.length === 0) {
+                return res.status(404).json({
+                    error: `No existe un usuario con el email ${email}`
+                });
+            }
+
+            usuariosEncontrados.push(usuarios[0]);    //esto lo que hace es agregar el usuario encontrado al array de usuarios encontrados para luego agregarlos al chat grupal
+            //y como esta adentro del for, lo va a repetir por cada elemtno del array  emails
+        }
+
+        // Recién ahora creamos el chat grupal
+        await mysql.realizarQuery(
+            `INSERT INTO Chats (nombre, foto)
+             VALUES ('${nombre}', '${foto || ""}')`
+        );
+
+        // Obtenemos el ID del chat recién creado
+        const nuevoChat = await mysql.realizarQuery(
+            `SELECT id_chat
              FROM Chats
              ORDER BY id_chat DESC
              LIMIT 1`
-    );
-
-    const id_chat = nuevoChat[0].id_chat;
-
-    // Agregamos al usuario que creó el grupo
-    await mysql.realizarQuery(
-      `INSERT INTO ChatUsuarios (id_chat, id_usuario)
-             VALUES (${id_chat}, ${id_usuario})`
-    );
-
-    // Recorremos todos los emails recibidos
-    for (const email of emails) {
-
-      // Buscamos al usuario correspondiente a ese email
-      const usuarios = await mysql.realizarQuery(
-        `SELECT * FROM UsuariosChat
-                 WHERE email = '${email}'`
-      );
-
-      // Si encontramos el usuario, lo agregamos al chat
-      if (usuarios.length > 0) {
-
-        const usuario = usuarios[0];
-
-        await mysql.realizarQuery(
-          `INSERT INTO ChatUsuarios (id_chat, id_usuario)
-                     VALUES (${id_chat}, ${usuario.id_usuario})`
         );
-      }
+
+        const id_chat = nuevoChat[0].id_chat;
+
+        // Agregamos al usuario que creó el grupo
+        await mysql.realizarQuery(
+            `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+             VALUES (${id_chat}, ${id_usuario})`
+        );
+
+        // Agregamos los demás usuarios
+        for (const usuario of usuariosEncontrados) {
+
+            await mysql.realizarQuery(
+                `INSERT INTO ChatUsuarios (id_chat, id_usuario)
+                 VALUES (${id_chat}, ${usuario.id_usuario})`
+            );
+        }
+
+        res.status(201).json({
+            mensaje: "Chat grupal creado correctamente",
+            id_chat: id_chat
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            error: "Error al crear el chat grupal"
+        });
     }
-
-    res.status(201).json({
-      mensaje: "Chat grupal creado correctamente",
-      id_chat: id_chat
-    });
-
-  } catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-      error: "Error al crear el chat grupal"
-    });
-  }
 });
 
 

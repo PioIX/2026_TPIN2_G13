@@ -133,3 +133,145 @@ a {
     color-scheme: dark;
   }
 }
+
+
+
+/* =========================
+   LISTA DE CHATS
+========================= */
+
+.chat-list {
+  width: 100%;
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.chat-list h2 {
+  margin: 0 0 16px;
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.chat-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+/* =========================
+   ITEM DE CHAT
+========================= */
+
+.chat-item {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  min-height: 76px;
+
+  padding: 10px 14px;
+  box-sizing: border-box;
+
+  background: #171717;
+  border: 1px solid #292929;
+  border-radius: 14px;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.chat-item:hover {
+  background: #202020;
+  border-color: #3a3a3a;
+  transform: translateY(-1px);
+}
+
+
+/* =========================
+   FOTO
+========================= */
+
+.chat-item-foto {
+  width: 56px;
+  height: 56px;
+
+  flex-shrink: 0;
+
+  object-fit: cover;
+
+  border-radius: 50%;
+
+  border: 2px solid #333;
+  background: #252525;
+}
+
+
+/* =========================
+   INFORMACIÓN
+========================= */
+
+.chat-item-info {
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+
+  margin-left: 14px;
+
+  min-width: 0;
+}
+
+.chat-item-info h3 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 600;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-item-info p {
+  margin: 5px 0 0;
+
+  color: #888;
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 600px) {
+  .chat-list {
+    margin: 20px auto;
+    padding: 0 10px;
+  }
+
+  .chat-item {
+    min-height: 70px;
+    padding: 8px 10px;
+  }
+
+  .chat-item-foto {
+    width: 50px;
+    height: 50px;
+  }
+
+  .chat-item-info {
+    margin-left: 12px;
+  }
+}
