@@ -3,6 +3,7 @@ import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 import { useEffect, useState } from "react";
 import ChatList from "@/components/ChatList";
+import Chat from "@/components/Chat";
 
 export default function Page() {
 
@@ -16,6 +17,7 @@ export default function Page() {
     const [emailsNuevoGrupo, setEmailsNuevoGrupo] = useState("");
     const [fotoNuevoGrupo, setFotoNuevoGrupo] = useState("");
     const [errorNuevoGrupo, setErrorNuevoGrupo] = useState("");
+    const [chatSeleccionado, setChatSeleccionado] = useState(null);
 
 
     function leerEmailNuevoChat(event) {
@@ -123,7 +125,7 @@ export default function Page() {
             setErrorNuevoGrupo("No se pudo obtener el usuario logueado.");
             return;
         }
-        
+
         setErrorNuevoGrupo("");
 
         // Convertimos el texto de mails en un array
@@ -252,7 +254,15 @@ export default function Page() {
                 </div>
             </Popup>
 
-            <ChatList chats={chats} />
+            <ChatList
+                chats={chats}
+                onSeleccionarChat={setChatSeleccionado}
+            />
+
+            <Chat
+                chat={chatSeleccionado}
+                usuario={usuario}
+            />
 
 
 
