@@ -13,141 +13,199 @@ export default function Chat({ chat, usuario }) {
 
 
     // CARGAR HISTORIAL
+
     useEffect(() => {
 
         if (!chat) {
             return;
         }
 
-        fetch(`http://localhost:4000/chats/${chat.id_chat}/mensajes`, {
-            credentials: "include"
+        fetch(
+            `http://localhost:4000/chats/${chat.id_chat}/mensajes`,
+            {
+                credentials: "include"
+            }
+        )
+        .then(response => response.json())
+        .then(data => {
+
+            console.log("Historial:", data);
+
+            setMensajes(data);
+
         })
-            .then(response => response.json())
-            .then(data => {
+        .catch(error => {
 
-                console.log("Historial:", data);
+            console.log(
+                "Error al cargar mensajes:",
+                error
+            );
 
-                setMensajes(data);
-
-            })
-            .catch(error => {
-
-                console.log("Error al cargar mensajes:", error);
-
-            });
-
-    }, [chat]);
-
-
-    // ENTRAR A LA SALA
-    useEffect(() => {
-
-        if (!socket || !chat) {
-            return;
-        }
-
-        socket.emit("joinRoom", {
-            room: chat.id_chat
         });
 
+}, [chat]);
 
-        function recibirMensaje(data) {
 
-            if (data.id_chat == chat.id_chat) {
+// ENTRAR A LA SALA
 
-                setMensajes(mensajesActuales => [
+useEffect(() => {
+
+    if (!socket || !chat) {
+        return;
+    }
+
+    socket.emit("joinRoom", {
+        room: chat.id_chat
+    });
+
+
+    function recibirMensaje(data) {
+
+        if (data.id_chat == chat.id_chat) {
+
+            setMensajes(
+                mensajesActuales => [
                     ...mensajesActuales,
                     data
-                ]);
-
-            }
+                ]
+            );
 
         }
-
-
-        socket.on("newMessage", recibirMensaje);
-
-
-        return () => {
-
-            socket.off("newMessage", recibirMensaje);
-
-        };
-
-    }, [socket, chat]);
-
-
-    function escribirMensaje(event) {
-
-        setMensajeNuevo(event.target.value);
 
     }
 
 
-    function enviarMensaje() {
-
-        if (mensajeNuevo.trim() === "") {
-            return;
-        }
-
-        socket.emit("sendMessage", {
-            message: mensajeNuevo
-        });
-
-        setMensajeNuevo("");
-
-    }
+    socket.on(
+        "newMessage",
+        recibirMensaje
+    );
 
 
-    if (!chat) {
+    return () => {
 
-        return (
-            <div>
-                <h2>Seleccioná un chat</h2>
-            </div>
+        socket.off(
+            "newMessage",
+            recibirMensaje
         );
 
+    };
+
+}, [socket, chat]);
+
+
+function escribirMensaje(event) {
+
+    setMensajeNuevo(
+        event.target.value
+    );
+
+}
+
+
+function enviarMensaje() {
+
+    if (
+        !socket ||
+        mensajeNuevo.trim() === ""
+    ) {
+        return;
     }
 
 
-    return (
-        <div>
-
-            <h2>
-                {chat.nombre_contacto || chat.nombre}
-            </h2>
+    socket.emit("sendMessage", {
+        message: mensajeNuevo
+    });
 
 
-            <div>
+    setMensajeNuevo("");
 
-                {mensajes.map((mensaje, index) => (
-
-                    <Message
-                        key={mensaje.id_mensaje || index}
-                        mensaje={mensaje}
-                        miId={usuario.id_usuario}
-                    />
-
-                ))}
-
-            </div>
+}
 
 
-            <div>
+function manejarEnter(event) {
+
+    if (event.key === "Enter") {
+
+        event.preventDefault();
+
+        enviarMensaje();
+
+    }
+
+}
+
+
+return (
+    <div className="chat-content">
+
+        <div className="messages-container">
+
+            {mensajes.length === 0 ? (
+
+                <div className="empty-messages">
+
+                    <div className="empty-message-icon">
+                        ✨
+                    </div>
+
+                    <h3>
+                        Todavía no hay mensajes
+                    </h3>
+
+                    <p>
+                        Mandá el primer mensaje para comenzar la conversación.
+                    </p>
+
+                </div>
+
+            ) : (
+
+                mensajes.map(
+                    (mensaje, index) => (
+
+                        <Message
+                            key={
+                                mensaje.id_mensaje ||
+                                index
+                            }
+                            mensaje={mensaje}
+                            miId={usuario.id_usuario}
+                        />
+
+                    )
+                )
+
+            )}
+
+        </div>
+
+
+        <div className="message-input-area">
+
+            <div className="message-input-wrapper">
 
                 <input
                     type="text"
                     placeholder="Escribí un mensaje..."
                     value={mensajeNuevo}
                     onChange={escribirMensaje}
+                    onKeyDown={manejarEnter}
                 />
 
-                <button onClick={enviarMensaje}>
-                    Enviar
+                <button
+                    className="send-message-button"
+                    onClick={enviarMensaje}
+                    disabled={
+                        mensajeNuevo.trim() === ""
+                    }
+                >
+                    ➤
                 </button>
 
             </div>
 
         </div>
-    );
+
+    </div>
+);
 }

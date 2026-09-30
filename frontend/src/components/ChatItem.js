@@ -8,15 +8,25 @@ export default function ChatItem({ chat, onClick }) {
 
             <img
                 className="chat-item-foto"
-                src={chat.foto || chat.imagen_contacto || "/foto-default.jpg"}
+                src={
+                    chat.foto ||
+                    chat.imagen_contacto ||
+                    "/foto-default.jpg"
+                }
                 alt="Foto del chat"
             />
 
             <div className="chat-item-info">
 
-                <h3>
-                    {chat.nombre_contacto || chat.nombre}
-                </h3>
+                <div className="chat-item-top">
+                    <h3>
+                        {chat.nombre_contacto || chat.nombre}
+                    </h3>
+
+                    <span className="chat-arrow">
+                        ›
+                    </span>
+                </div>
 
                 <p>
                     {chat.nombre === "Chat individual"
