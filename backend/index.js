@@ -53,8 +53,8 @@ io.on("connection", (socket) => { // Se ejecuta cuando un cliente se conecta
     // Guardamos la sala actual
     req.session.room = data.room;
 
-    // Entramos a la nueva sala
-    socket.join(req.session.room);
+  
+    socket.join(req.session.room); // Se entra a sala 
 
     console.log("Usuario entró a la sala:", req.session.room);
 
