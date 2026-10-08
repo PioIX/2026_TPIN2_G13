@@ -1,29 +1,41 @@
+export default function ChatItem({ chat, onClick }) {
 
-export default function ChatItem({ chat }) {
-    // Mostramos la información de un solo chat
     return (
-        <div>
+        <div
+            className="chat-item"
+            onClick={onClick}
+        >
 
-            {/* 
-                Si el chat tiene una foto, usamos esa.
-                Si no tiene, usamos la foto del contacto.
-                Si tampoco tiene, mostramos una foto por defecto.
-            */}
             <img
-                src={chat.foto || chat.imagen_contacto || "/foto-default.jpg"}
+                className="chat-item-foto"
+                src={
+                    chat.foto ||
+                    chat.imagen_contacto ||
+                    "/foto-default.jpg"
+                }
                 alt="Foto del chat"
             />
 
-            {/*
-                Si es un chat individual, mostramos el nombre del contacto.
-                Si es un grupo, mostramos el nombre del grupo.
-            */}
-            <h3>
-                {chat.nombre_contacto || chat.nombre}
-            </h3>
+            <div className="chat-item-info">
+
+                <div className="chat-item-top">
+                    <h3>
+                        {chat.nombre_contacto || chat.nombre}
+                    </h3>
+
+                    <span className="chat-arrow">
+                        ›
+                    </span>
+                </div>
+
+                <p>
+                    {chat.nombre === "Chat individual"
+                        ? "Chat individual"
+                        : "Grupo"}
+                </p>
+
+            </div>
 
         </div>
-    )
+    );
 }
-
-
